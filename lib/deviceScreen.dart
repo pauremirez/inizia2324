@@ -59,30 +59,31 @@ class _DeviceState extends State<DeviceScreen> {
             setState(() {
               confirmacion = mycolor;
             });
-            await Future.delayed(const Duration(seconds: 2));
 
             if (targetCharacteristic.properties.notify) {
               //DESCRIPTOR
-              var descriptors = targetCharacteristic.descriptors;
-
-              for (final BluetoothDescriptor d in descriptors) {
-                Future<List<int>> descriptorValue = d.read();
+              descriptors = targetCharacteristic.descriptors;
+              if (descriptors.toString() == DESCRIPTOR_UUID) {
+                Future<List<int>> descriptorValue = descriptors[0].read();
                 print('Descriptor value : $descriptorValue');
               }
+              await Future.delayed(const Duration(seconds: 5));
+
               // END-DESCRIPTOR
-              await Future.delayed(const Duration(seconds: 2));
 
               await targetCharacteristic.setNotifyValue(true);
-              var list = targetCharacteristic.value.listen((event) {
+              //var list = targetCharacteristic.value.listen((event) {
+              targetCharacteristic.value.listen((event) {
                 if (event.isNotEmpty) {
                   setState(() {
                     distancia_txt = utf8.decode(event);
-                    if (distancia_txt == "") distancia_txt = ">40";
+                    //if (distancia_txt == "") distancia_txt = ">40";
                     print('Distancia: $distancia_txt cm del sensor');
                   });
                 }
               });
               //list.cancel();
+              await Future.delayed(const Duration(seconds: 3));
             }
           }
         }

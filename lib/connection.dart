@@ -66,6 +66,7 @@ class _SecondPageState extends State<SecondPage> {
               });
             }
           } else {
+            print("hola");
             //Ya está en el listado de conectados
           }
         }
