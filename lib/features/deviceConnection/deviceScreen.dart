@@ -67,18 +67,20 @@ class _DeviceState extends State<DeviceScreen> {
                 Future<List<int>> descriptorValue = descriptors[0].read();
                 print('Descriptor value : $descriptorValue');
               }
+
               await Future.delayed(const Duration(seconds: 5));
 
               // END-DESCRIPTOR
 
-              await targetCharacteristic.setNotifyValue(true);
+              //await targetCharacteristic.setNotifyValue(true);
+              targetCharacteristic.setNotifyValue(true);
               //var list = targetCharacteristic.value.listen((event) {
               targetCharacteristic.value.listen((event) {
                 if (event.isNotEmpty) {
                   setState(() {
                     distancia_txt = utf8.decode(event);
                     //if (distancia_txt == "") distancia_txt = ">40";
-                    print('Distancia: $distancia_txt cm del sensor');
+                    print('Distancia: $distancia_txt');
                   });
                 }
               });
@@ -91,6 +93,7 @@ class _DeviceState extends State<DeviceScreen> {
     }
   }
 
+/*
   notify() async {
     if (targetCharacteristic.properties.notify) {
       //Descriptor
@@ -112,7 +115,7 @@ class _DeviceState extends State<DeviceScreen> {
       });
     }
   }
-
+*/
   @override
   Widget build(BuildContext context) {
     //   final providerDevice = Provider.of<DeviceProvider>(context);
@@ -148,6 +151,9 @@ class _DeviceState extends State<DeviceScreen> {
                           });
 
                           widget.device.disconnect();
+                          // TODO: Actualizar la lista de conectados y descubiertos cuando se desconecta manualmente un dispositivo
+                          //connectedDevices.remove(widget.device);
+                          //discoveredDevices.add(widget.device);
                           break;
                         case BluetoothDeviceState.disconnected:
                           setState(() {
@@ -155,6 +161,9 @@ class _DeviceState extends State<DeviceScreen> {
                           });
 
                           widget.device.connect();
+                          // TODO: Actualizar la lista de conectados y descubiertos cuando se desconecta manualmente un dispositivo
+                          //connectedDevices.add(widget.device);
+                          //discoveredDevices.remove(widget.device);
                           break;
                         default:
                           break;
@@ -192,97 +201,88 @@ class _DeviceState extends State<DeviceScreen> {
                 ],
               ],
             ),
-            Text('${widget.device.id}'),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                foregroundColor: useWhiteForeground(mycolor) //foreground
-                    ? const Color(0xffffffff)
-                    : const Color(0xff000000),
-                backgroundColor: mycolor, //foreground
-              ),
-              onPressed: () {
-                //                 providerDevice.cambiarColor(mycolor);
-                showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        titlePadding: const EdgeInsets.all(0.0),
-                        contentPadding: const EdgeInsets.all(30.0),
-                        shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(16.0))),
-                        content: SingleChildScrollView(
-                          child: BlockPicker(
-                              pickerColor: mycolor,
-                              onColorChanged: changeColor),
-                        ),
-                        actions: [
-                          FloatingActionButton(
-                            onPressed: () => {
-                              Navigator.pop(context, true),
-                              _write(),
-                            },
-                            child: const Text("OK"),
-                          ),
-                          /* FloatingActionButton(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
+              child: Container(
+                padding: const EdgeInsets.all(20.0),
+                child: Text('${widget.device.id}'),
+              ), //Container
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
+              child: Container(
+                padding: const EdgeInsets.all(10.0),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: useWhiteForeground(mycolor) //foreground
+                        ? const Color(0xffffffff)
+                        : const Color(0xff000000),
+                    backgroundColor: mycolor, //foreground
+                  ),
+                  onPressed: () {
+                    //                 providerDevice.cambiarColor(mycolor);
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            titlePadding: const EdgeInsets.all(0.0),
+                            contentPadding: const EdgeInsets.all(30.0),
+                            shape: const RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(16.0))),
+                            content: SingleChildScrollView(
+                              child: BlockPicker(
+                                  pickerColor: mycolor,
+                                  onColorChanged: changeColor),
+                            ),
+                            actions: [
+                              FloatingActionButton(
+                                onPressed: () => {
+                                  Navigator.pop(context, true),
+                                  _write(),
+                                },
+                                child: const Text("OK"),
+                              ),
+                              /* FloatingActionButton(
                             elevation: 0.0,
                             child: const Icon(Icons.check),
                             backgroundColor: confirmacion,
                             onPressed: () => _writeBLUE()),*/
-                        ],
-                      );
-                    });
-              },
-              child: const Text("Color"),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                    'RGB: ${mycolor.red}, ${mycolor.green}, ${mycolor.blue}'),
-              ), //Container
-            ),
-            /*  ElevatedButton(
-                child: const Text("Sonido"),
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: useWhiteForeground(mycolor) //foreground
-                      ? const Color(0xffffffff)
-                      : const Color(0xff000000),
-                  backgroundColor: mycolor, //fororeground
+                            ],
+                          );
+                        });
+                  },
+                  child: const Text("Color"),
                 ),
-                onPressed: () => showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        titlePadding: const EdgeInsets.all(0.0),
-                        contentPadding: const EdgeInsets.all(30.0),
-                        shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(16.0))),
-                        content: const SingleChildScrollView(
-                          child: Text("Selección del sonido"),
-                        ),
-                        actions: [
-                          FloatingActionButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text("OK"),
-                          ),
-                        ],
-                      );
-                    }),
-              ),*/
+              ), //Container
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(40, 0, 40, 0),
+              child: Container(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    'RGB: ${mycolor.red}, ${mycolor.green}, ${mycolor.blue}',
+                  )), //Container
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Container(
-                padding: const EdgeInsets.all(20.0),
-                child: Text('Objeto a $distancia_txt cm del sensor'),
-              ), //Container
+              child: (distancia_txt != "")
+                  ? Container(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Text('Objeto a $distancia_txt cm del sensor',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 20.0)),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.all(10.0),
+                      child: const Text(''), //Container
+                    ),
             ),
           ],
         ));
   }
 
+/*
   List<Widget> _buildServiceTiles(List<BluetoothService> services) {
     return services
         .map(
@@ -493,4 +493,5 @@ class AdapterStateTile extends StatelessWidget {
       ),
     );
   }
+  */
 }

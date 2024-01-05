@@ -1,9 +1,7 @@
-import 'dart:convert';
-
 import 'package:bluetooth_enable_fork/bluetooth_enable_fork.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
-import 'package:inizia2324/deviceScreen.dart';
+import 'package:inizia2324/features/deviceConnection/deviceScreen.dart';
 
 class SecondPage extends StatefulWidget {
   @override
@@ -15,6 +13,7 @@ class _SecondPageState extends State<SecondPage> {
   List<BluetoothDevice> connectedDevices = [];
   List<BluetoothDevice> discoveredDevices = [];
   late List<BluetoothService> services;
+  late var descriptors;
 
   @override
   void initState() {
@@ -51,29 +50,44 @@ class _SecondPageState extends State<SecondPage> {
     }
   }
 
-  void _startBluetoothScan() {
+  Future<void> _startBluetoothScan() async {
     _checkBluetooth();
     flutterBlue.startScan(timeout: Duration(seconds: 4));
+    List<BluetoothDevice> appConnectedDevices =
+        await flutterBlue.connectedDevices;
 
     flutterBlue.scanResults.listen((List<ScanResult> results) {
       for (ScanResult result in results) {
+        if (appConnectedDevices.isEmpty) {
+          //No hay dispositivos conectados
+          setState(() {
+            connectedDevices.clear();
+          });
+        }
         if (result.device.name.contains("INIZIA")) {
-          if (!connectedDevices.contains(result.device)) {
-            //No está en conectados
+          if (appConnectedDevices.contains(result.device)) {
+            print("Already connected");
+            if (!connectedDevices.contains(result.device)) {
+              //No está en conectados
+              setState(() {
+                connectedDevices.add(result.device);
+              });
+            } // else: Ya está el dispositivo conectado y registrado
+          } else {
+            //Dispositivo NO conectado todavía
+            print("Not connected yet. Device discovered");
             if (!discoveredDevices.contains(result.device)) {
               setState(() {
                 discoveredDevices.add(result.device);
               });
             }
-          } else {
-            print("hola");
-            //Ya está en el listado de conectados
           }
         }
       }
     });
   }
 
+/*
   // Discover services & read/write from CHARACTERISTICS
   Future<void> _transferDataCharacteristics(BluetoothDevice device) async {
     services = await device.discoverServices();
@@ -82,46 +96,38 @@ class _SecondPageState extends State<SecondPage> {
       if (service.uuid.toString() == '4fafc201-1fb5-459e-8fcc-c5c9c331914b') {
         //Comprobamos que estamos trabajando en la Characteristic correcta
         // Reads all characteristics
-        var characteristics = service.characteristics;
-        for (BluetoothCharacteristic c in characteristics) {
-          if (c.toString() == 'beb5483e-36e1-4688-b7f5-ea07361b26a8') {
-            // La ponemos a FALSE primero y luego la cambiamos a true --> AJUATE
 
-            // READS from a characteristic
-            //    List<int> value = await c.read();
-            //    print('READING FROM DEVICE:  $value');
+        for (var characteristic in service.characteristics) {
+          if (characteristic.uuid.toString() ==
+              'beb5483e-36e1-4688-b7f5-ea07361b26a8') {
+            if (characteristic.properties.notify) {
+              //DESCRIPTOR
+              descriptors = characteristic.descriptors;
+              if (descriptors.toString() ==
+                  '00002902-0000-1000-8000-00805f9b34fb') {
+                Future<List<int>> descriptorValue = descriptors[0].read();
+                print('Descriptor value : $descriptorValue');
+              }
 
-            // WRITES to a characteristic
-            //await c.write([0x12, 0x34]);
-            await c.write(utf8.encode("176,224,230"), withoutResponse: true);
+              await Future.delayed(const Duration(seconds: 5));
+              await characteristic.setNotifyValue(false);
+
+              // La ponemos a FALSE primero y luego la cambiamos a true --> AJUATE
+
+              // READS from a characteristic
+              //    List<int> value = await c.read();
+              //    print('READING FROM DEVICE:  $value');
+
+              // WRITES to a characteristic
+              //await c.write([0x12, 0x34]);
+              //await c.write(utf8.encode("176,224,230"), withoutResponse: true);
+            }
           }
         }
       }
     });
   }
-
-  notify() async {
-    // ignore: avoid_function_literals_in_foreach_calls
-    services.forEach((service) async {
-      // Si es el servicio del Android BLE
-      if (service.uuid.toString() == '4fafc201-1fb5-459e-8fcc-c5c9c331914b') {
-        //Comprobamos que estamos trabajando en la Characteristic correcta
-        // Reads all characteristics
-        var characteristics = service.characteristics;
-        for (BluetoothCharacteristic c in characteristics) {
-          if (c.toString() == 'beb5483e-36e1-4688-b7f5-ea07361b26a8') {
-            await c.setNotifyValue(true);
-            c.value.listen((value) {
-              // do something with new value
-              List<int> readValue = value;
-              print('READING FROM DEVICE:  $readValue.lenght');
-            });
-          }
-        }
-      }
-    });
-  }
-
+*/
   Widget _buildDeviceList(
       String title, Icon icon, List<BluetoothDevice> devices) {
     return Column(
@@ -155,7 +161,7 @@ class _SecondPageState extends State<SecondPage> {
                     print(
                         'Trying to connect the device: ${devices[index].name}');
                   } else {
-                    _transferDataCharacteristics(devices[index]);
+//                    _transferDataCharacteristics(devices[index]);
                     // ya está conectado. Accedemos a su configuración
                     print(
                         'CONFIGURACIÓN POR DEFECTO DEL DISPOSITIVO: ${devices[index].name}');
@@ -207,11 +213,6 @@ class _SecondPageState extends State<SecondPage> {
                               FlutterBlue.instance.stopScan();
                             },
                           ),
-                          /* FloatingActionButton(
-                            onPressed: () => FlutterBlue.instance.stopScan(),
-                            backgroundColor: Colors.red,
-                            child: const Icon(Icons.stop),
-                          )*/
                         ]);
                       } else {
                         return Row(mainAxisSize: MainAxisSize.min, children: [
@@ -235,17 +236,6 @@ class _SecondPageState extends State<SecondPage> {
                       }
                     })
               ]))),
-
-/*              IconButton(
-                icon: Icon(Icons.search_rounded),
-                iconSize: 30,
-                color: Colors.black54,
-                onPressed: () {
-                  _startBluetoothScan();
-                },
-              ),
-              */
-
       body: Column(
         children: [
           Expanded(
